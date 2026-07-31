@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: digiturno-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: digiturno
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: digiturno-redis
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: .
+    container_name: digiturno-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/digiturno?schema=public
+      JWT_SECRET: super-secret-key-change-in-production
+      JWT_REFRESH_SECRET: super-refresh-secret-change-in-production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads:/app/uploads
+
+  dispensador:
+    build: ./dispensador
+    container_name: digiturno-dispensador
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+  atencion:
+    build: ./atencion
+    container_name: digiturno-atencion
+    depends_on:
+      - backend
+    ports:
+      - "5174:80"
+
+  visor:
+    build: ./visor
+    container_name: digiturno-visor
+    depends_on:
+      - backend
+    ports:
+      - "5175:80"
+
+  cms:
+    build: ./cms
+    container_name: digiturno-cms
+    depends_on:
+      - backend
+    ports:
+      - "5176:80"
+
+volumes:
+  pgdata:
+  uploads:

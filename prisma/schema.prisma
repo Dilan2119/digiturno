@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Rol {
+  admin_central
+  profesional
+  dispensador
+
+  @@map("rol")
+}
+
+enum StatusTurno {
+  waiting
+  called
+  attending
+  absent
+  finished
+
+  @@map("status_turno")
+}
+
+enum TipoEvento {
+  creado
+  llamado
+  re_llamado
+  ausente
+  iniciado_atencion
+  finalizado
+
+  @@map("tipo_evento")
+}
+
+enum TipoMedia {
+  imagen
+  video
+
+  @@map("tipo_media")
+}
+
+model Sede {
+  id        Int     @id @default(autoincrement())
+  nombre    String  @db.VarChar(200)
+  direccion String  @db.VarChar(500)
+  activa    Boolean @default(true)
+
+  salas     Sala[]
+  servicios Servicio[]
+  modulos   Modulo[]
+  usuarios  Usuario[]
+  turnos    Turno[]
+
+  @@map("sedes")
+}
+
+model Sala {
+  id      Int    @id @default(autoincrement())
+  sedeId  Int
+  nombre  String @db.VarChar(200)
+
+  sede    Sede   @relation(fields: [sedeId], references: [id])
+  visores Visor[]
+
+  @@unique([sedeId, nombre])
+  @@map("salas")
+}
+
+model Visor {
+  id               Int     @id @default(autoincrement())
+  salaId           Int
+  nombre           String  @db.VarChar(200)
+  configMultimedia Json?   @map("config_multimedia")
+  mostrarCedula    Boolean @default(false) @map("mostrar_cedula")
+
+  sala     Sala       @relation(fields: [salaId], references: [id])
+  playlists Playlist[]
+
+  @@map("visores")
+}
+
+model Servicio {
+  id      Int    @id @default(autoincrement())
+  sedeId  Int
+  nombre  String @db.VarChar(200)
+  prefijo String @db.VarChar(20)
+
+  sede      Sede           @relation(fields: [sedeId], references: [id])
+  turnos    Turno[]
+  contadores ContadorTurno[]
+
+  @@unique([sedeId, nombre])
+  @@unique([sedeId, prefijo])
+  @@map("servicios")
+}
+
+model Modulo {
+  id     Int    @id @default(autoincrement())
+  sedeId Int
+  nombre String @db.VarChar(200)
+
+  sede   Sede   @relation(fields: [sedeId], references: [id])
+  turnos Turno[]
+
+  @@unique([sedeId, nombre])
+  @@map("modulos")
+}
+
+model Usuario {
+  id           Int      @id @default(autoincrement())
+  sedeId       Int?
+  nombre       String   @db.VarChar(200)
+  email        String   @unique @db.VarChar(200)
+  passwordHash String   @map("password_hash") @db.VarChar(200)
+  rol          Rol
+
+  sede         Sede?         @relation(fields: [sedeId], references: [id])
+  turnoEventos TurnoEvento[]
+
+  @@map("usuarios")
+}
+
+model Turno {
+  id        Int         @id @default(autoincrement())
+  sedeId    Int
+  servicioId Int
+  codigo    String      @db.VarChar(20)
+  cedula    String      @db.VarChar(20)
+  nombre    String?     @db.VarChar(200)
+  status    StatusTurno @default(waiting)
+  moduloId  Int?
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  sede      Sede        @relation(fields: [sedeId], references: [id])
+  servicio  Servicio    @relation(fields: [servicioId], references: [id])
+  modulo    Modulo?     @relation(fields: [moduloId], references: [id])
+  eventos   TurnoEvento[]
+
+  @@index([sedeId, status])
+  @@index([servicioId, createdAt])
+  @@index([sedeId, createdAt])
+  @@index([codigo])
+  @@map("turnos")
+}
+
+model TurnoEvento {
+  id        Int        @id @default(autoincrement())
+  turnoId   Int
+  tipoEvento TipoEvento @map("tipo_evento")
+  usuarioId Int?
+  timestamp DateTime   @default(now())
+
+  turno   Turno    @relation(fields: [turnoId], references: [id])
+  usuario Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([turnoId, timestamp])
+  @@map("turno_eventos")
+}
+
+model Playlist {
+  id      Int      @id @default(autoincrement())
+  visorId Int
+  tipo    TipoMedia
+  url     String   @db.VarChar(500)
+  orden   Int      @default(0)
+  activo  Boolean  @default(true)
+
+  visor   Visor    @relation(fields: [visorId], references: [id])
+
+  @@index([visorId, orden, activo])
+  @@map("playlist")
+}
+
+model ContadorTurno {
+  id           Int      @id @default(autoincrement())
+  servicioId   Int
+  fecha        DateTime @db.Date
+  ultimoNumero Int      @map("ultimo_numero")
+
+  servicio     Servicio @relation(fields: [servicioId], references: [id])
+
+  @@unique([servicioId, fecha])
+  @@map("contador_turnos")
+}

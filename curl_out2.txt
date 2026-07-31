@@ -1,0 +1,1 @@
+[{"id":1,"nombre":"Sede Norte","direccion":"Av. Principal 123","activa":true},{"id":2,"nombre":"Sede Sur","direccion":"Calle Secundaria 456","activa":true}]
