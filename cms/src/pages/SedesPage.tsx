@@ -5,19 +5,39 @@ export default function SedesPage() {
   const [items, setItems] = useState<Sede[]>([]);
   const [modal, setModal] = useState<{ open: boolean; edit?: Sede }>({ open: false });
   const [form, setForm] = useState({ nombre: '', direccion: '', activa: true });
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { getList<Sede>('/sedes').then(setItems); }, []);
 
   const openCreate = () => { setForm({ nombre: '', direccion: '', activa: true }); setModal({ open: true }); };
   const openEdit = (s: Sede) => { setForm({ nombre: s.nombre, direccion: s.direccion, activa: s.activa }); setModal({ open: true, edit: s }); };
   const save = async () => {
-    if (modal.edit) { await update('/sedes/' + modal.edit.id, form); } else { await create('/sedes', form); }
-    setModal({ open: false }); setItems(await getList<Sede>('/sedes'));
+    setSaving(true); setError(null);
+    try {
+      if (modal.edit) { await update('/sedes/' + modal.edit.id, form); } else { await create('/sedes', form); }
+      setModal({ open: false }); setItems(await getList<Sede>('/sedes'));
+    } catch (e: any) { setError(e.message); }
+    finally { setSaving(false); }
   };
-  const del = async (id: number) => { if (confirm('¿Eliminar sede?')) { await remove('/sedes/' + id); setItems(await getList<Sede>('/sedes')); } };
+  const del = async (id: number) => {
+    if (!confirm('¿Eliminar sede?')) return;
+    try {
+      await remove('/sedes/' + id);
+      setItems(await getList<Sede>('/sedes'));
+    } catch (e: any) {
+      setError(e.message || 'No se pudo eliminar la sede');
+    }
+  };
 
   return (
     <div>
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 flex items-center justify-between text-sm">
+          <span>⚠️ {error}</span>
+          <button onClick={() => setError(null)} className="ml-4 text-red-400 hover:text-red-600 font-bold">×</button>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4"><h1 className="text-2xl font-bold">Sedes</h1><button onClick={openCreate} className="bg-blue-700 text-white px-4 py-2 rounded-xl text-sm">+ Nueva</button></div>
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full text-sm"><thead><tr className="bg-slate-50 text-slate-500"><th className="text-left px-4 py-3">Nombre</th><th className="text-left px-4 py-3">Dirección</th><th className="text-left px-4 py-3">Activa</th><th className="text-right px-4 py-3">Acciones</th></tr></thead>
@@ -28,7 +48,7 @@ export default function SedesPage() {
         <label className="text-sm text-slate-500 mb-1 block">Nombre</label><input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} className="w-full border rounded-xl px-3 py-2 mb-3 text-sm" />
         <label className="text-sm text-slate-500 mb-1 block">Dirección</label><input value={form.direccion} onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))} className="w-full border rounded-xl px-3 py-2 mb-3 text-sm" />
         <label className="flex items-center gap-2 text-sm mb-4"><input type="checkbox" checked={form.activa} onChange={e => setForm(f => ({ ...f, activa: e.target.checked }))} /> Activa</label>
-        <div className="flex gap-2 justify-end"><button onClick={() => setModal({ open: false })} className="px-4 py-2 text-sm text-slate-500">Cancelar</button><button onClick={save} className="bg-blue-700 text-white px-4 py-2 rounded-xl text-sm">Guardar</button></div>
+        <div className="flex gap-2 justify-end"><button onClick={() => setModal({ open: false })} className="px-4 py-2 text-sm text-slate-500">Cancelar</button><button onClick={save} disabled={saving} className="bg-blue-700 text-white px-4 py-2 rounded-xl text-sm disabled:opacity-60">{saving ? 'Guardando...' : 'Guardar'}</button></div>
       </div></div>}
     </div>
   );

@@ -70,6 +70,13 @@ export default function App() {
     if (visorId) fetchVisor(visorId)
   }, [visorId, fetchVisor])
 
+  // Recargar playlist cada 30 segundos para detectar cambios desde el CMS
+  useEffect(() => {
+    if (!visorId) return
+    const interval = setInterval(() => fetchVisor(visorId), 30000)
+    return () => clearInterval(interval)
+  }, [visorId, fetchVisor])
+
   const handleTurnoLlamado = useCallback((turno: Turno) => {
     setTurnoActual(turno)
     setUltimosLlamados((prev) => [turno, ...prev].slice(0, 10))

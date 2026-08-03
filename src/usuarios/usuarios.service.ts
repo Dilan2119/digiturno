@@ -4,6 +4,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 
+const INCLUDE_SERVICIOS = {
+  servicios: {
+    select: { id: true, nombre: true, prefijo: true, sedeId: true },
+  },
+};
+
 @Injectable()
 export class UsuariosService {
   constructor(private prisma: PrismaService) {}
@@ -12,48 +18,52 @@ export class UsuariosService {
     const exists = await this.prisma.usuario.findUnique({ where: { email: dto.email } });
     if (exists) throw new ConflictException('El email ya está registrado');
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
-    return this.prisma.usuario.create({
+    const { serviciosIds, password, ...rest } = dto;
+    const passwordHash = await bcrypt.hash(password, 10);
+    const created = await this.prisma.usuario.create({
       data: {
-        sedeId: dto.sedeId,
-        nombre: dto.nombre,
-        email: dto.email,
+        ...rest,
         passwordHash,
-        rol: dto.rol,
+        servicios: serviciosIds?.length ? { connect: serviciosIds.map(id => ({ id })) } : undefined,
       },
-      select: { id: true, nombre: true, email: true, rol: true, sedeId: true },
     });
+    return this.findOne(created.id);
   }
 
-  findAll(sedeId?: number) {
+  async findAll(sedeId?: number) {
     const where = sedeId ? { sedeId } : {};
     return this.prisma.usuario.findMany({
       where,
-      select: { id: true, nombre: true, email: true, rol: true, sedeId: true },
+      include: INCLUDE_SERVICIOS,
       orderBy: { nombre: 'asc' },
-    });
+    }).then(users => users.map(u => {
+      const { passwordHash, ...safe } = u as any;
+      return safe;
+    }));
   }
 
   async findOne(id: number) {
     const usuario = await this.prisma.usuario.findUnique({
       where: { id },
-      select: { id: true, nombre: true, email: true, rol: true, sedeId: true },
+      include: INCLUDE_SERVICIOS,
     });
     if (!usuario) throw new NotFoundException('Usuario no encontrado');
-    return usuario;
+    const { passwordHash, ...safe } = usuario as any;
+    return safe;
   }
 
   async update(id: number, dto: UpdateUsuarioDto) {
     await this.findOne(id);
-    const record = dto as any;
-    const data: any = { ...dto };
-    if (record.password) data.passwordHash = await bcrypt.hash(record.password, 10);
-    delete data.password;
-    return this.prisma.usuario.update({
-      where: { id },
-      data,
-      select: { id: true, nombre: true, email: true, rol: true, sedeId: true },
-    });
+    const { serviciosIds, password, ...rest } = dto as any;
+    const data: any = { ...rest };
+    if (password) data.passwordHash = await bcrypt.hash(password, 10);
+
+    if (serviciosIds !== undefined) {
+      data.servicios = { set: serviciosIds.map((sid: number) => ({ id: sid })) };
+    }
+
+    await this.prisma.usuario.update({ where: { id }, data });
+    return this.findOne(id);
   }
 
   async remove(id: number) {

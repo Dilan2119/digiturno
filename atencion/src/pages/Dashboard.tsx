@@ -5,30 +5,31 @@ import { ColaGrupo, Turno, Sala, Modulo, getColas, getSalas, getModulos, Servici
 interface Props {
   socket: Socket | null;
   sedeId: number;
+  salaId: number | null;
+  onSalaChange: (salaId: number) => void;
   onLogout: () => void;
 }
 
-export default function Dashboard({ socket, sedeId, onLogout }: Props) {
+export default function Dashboard({ socket, sedeId, salaId, onSalaChange, onLogout }: Props) {
   const [salas, setSalas] = useState<Sala[]>([]);
-  const [salaId, setSalaId] = useState<number | null>(null);
   const [queue, setQueue] = useState<ColaGrupo[]>([]);
   const [currentTurn, setCurrentTurn] = useState<Turno | null>(null);
   const [modulos, setModulos] = useState<Modulo[]>([]);
-  const [moduloId, setModuloId] = useState<number | null>(null);
+  const [moduloId, setModuloId] = useState<number | null>(() => {
+    const m = localStorage.getItem('atencion_moduloId');
+    return m ? parseInt(m, 10) : null;
+  });
   const [wsStatus, setWsStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
   const llamandoRef = useRef(false);
 
   useEffect(() => {
-    getSalas(sedeId).then((s) => {
-      setSalas(s);
-      if (s.length > 0) setSalaId(s[0].id);
-    });
-    getModulos(sedeId).then(setModulos).catch(() => {});
-  }, [sedeId]);
-
-  useEffect(() => {
-    if (!salaId) return;
-    getColas(sedeId).then(setQueue).catch(() => {});
+    getSalas(sedeId).then(setSalas);
+    getModulos(sedeId).then(setModulos);
+    if (salaId) {
+      getColas(sedeId, salaId).then(setQueue);
+    } else {
+      getColas(sedeId).then(setQueue);
+    }
   }, [sedeId, salaId]);
 
   useEffect(() => {
@@ -68,15 +69,13 @@ export default function Dashboard({ socket, sedeId, onLogout }: Props) {
 
     const handleTurnoCreado = (t: Turno) => {
       setQueue((prev) => {
-        const grupo = prev.find((g) => g.servicio.id === t.servicio?.id);
-        if (grupo) {
-          return prev.map((g) =>
-            g.servicio.id === t.servicio?.id
-              ? { ...g, turnos: [...g.turnos, t] }
-              : g,
-          );
+        const grupoIndex = prev.findIndex((g) => g.servicio.id === t.servicio?.id);
+        if (grupoIndex !== -1) {
+          const next = [...prev];
+          next[grupoIndex] = { ...next[grupoIndex], turnos: [...next[grupoIndex].turnos, t] };
+          return next;
         }
-        return [...prev, { servicio: t.servicio!, turnos: [t] }];
+        return prev;
       });
     };
 
@@ -105,12 +104,22 @@ export default function Dashboard({ socket, sedeId, onLogout }: Props) {
     [socket],
   );
 
-  const llamarSiguiente = () => {
-    if (!moduloId) { alert('Seleccione un módulo'); return; }
-    const first = queue.flatMap((g) => g.turnos)[0];
-    if (!first) { alert('No hay turnos en espera'); return; }
+  const llamarSiguiente = (servicioId?: number) => {
+    if (!moduloId) { alert('Seleccione un módulo primero'); return; }
+    
+    // Si se pasa un servicioId, busca el primer turno de ese servicio. Si no, el primero global.
+    let first: Turno | undefined;
+    if (servicioId) {
+      const grupo = queue.find((g) => g.servicio.id === servicioId);
+      first = grupo?.turnos[0];
+    } else {
+      first = queue.flatMap((g) => g.turnos)[0];
+    }
+
+    if (!first) { alert('No hay turnos en espera para llamar'); return; }
     emitEvent('llamar-turno', { turnoId: first.id, moduloId });
   };
+
 
   const reLlamar = () => {
     if (!currentTurn) return;
@@ -137,16 +146,25 @@ export default function Dashboard({ socket, sedeId, onLogout }: Props) {
           <span className="text-blue-300 font-bold">Digiturno</span>
           <select
             value={salaId ?? ''}
-            onChange={(e) => setSalaId((e.target.value && Number(e.target.value)) || null)}
+            onChange={(e) => {
+              const id = Number(e.target.value);
+              if (id) onSalaChange(id);
+            }}
             className="bg-slate-700 rounded-lg px-3 py-1.5 text-sm text-white"
           >
             {salas.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
           </select>
           <select
             value={moduloId ?? ''}
-            onChange={(e) => setModuloId((e.target.value && Number(e.target.value)) || null)}
+            onChange={(e) => {
+              const id = e.target.value ? Number(e.target.value) : null;
+              setModuloId(id);
+              if (id) localStorage.setItem('atencion_moduloId', id.toString());
+              else localStorage.removeItem('atencion_moduloId');
+            }}
             className="bg-slate-700 rounded-lg px-3 py-1.5 text-sm text-white"
           >
+
             <option value="">Módulo</option>
             {modulos.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
           </select>
@@ -173,8 +191,18 @@ export default function Dashboard({ socket, sedeId, onLogout }: Props) {
           ) : (
             queue.map((grupo) => (
               <div key={grupo.servicio.id} className="mb-4">
-                <h3 className="text-sm font-medium text-slate-400 mb-1.5">{grupo.servicio.nombre}</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-slate-400">{grupo.servicio.nombre}</h3>
+                  <button 
+                    onClick={() => llamarSiguiente(grupo.servicio.id)}
+                    disabled={grupo.turnos.length === 0 || !moduloId}
+                    className="text-xs bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 px-3 py-1 rounded-full font-medium transition-colors disabled:opacity-30"
+                  >
+                    Llamar Siguiente
+                  </button>
+                </div>
                 <div className="space-y-1">
+
                   {grupo.turnos.map((t) => (
                     <div
                       key={t.id}
@@ -215,11 +243,11 @@ export default function Dashboard({ socket, sedeId, onLogout }: Props) {
           {/* Acciones */}
           <div className="space-y-2">
             <button
-              onClick={llamarSiguiente}
+              onClick={() => llamarSiguiente()}
               disabled={totalWaiting === 0 || !moduloId}
               className="w-full bg-blue-700 hover:bg-blue-600 disabled:opacity-40 rounded-xl py-4 text-lg font-bold transition-colors"
             >
-              📞 Llamar Siguiente
+              📞 Llamar Cualquiera
             </button>
             <div className="grid grid-cols-3 gap-2">
               <button

@@ -81,30 +81,78 @@ export class TurnosService {
     });
   }
 
-  async colasPorSede(sedeId: number) {
+  async colasPorSede(sedeId: number, salaId?: number, usuarioId?: number) {
+    const whereClause: any = { sedeId, status: 'waiting' };
+    
+    let validServices: number[] | null = null;
+
+    if (salaId) {
+      const sala = await this.prisma.sala.findUnique({
+        where: { id: salaId },
+        include: { servicios: { select: { id: true } } },
+      });
+      if (sala && sala.servicios.length > 0) {
+        validServices = sala.servicios.map(s => s.id);
+      } else if (sala && sala.servicios.length === 0) {
+        return []; // La sala no tiene servicios asignados
+      }
+    }
+
+    if (usuarioId) {
+      const usuario = await this.prisma.usuario.findUnique({
+        where: { id: usuarioId },
+        include: { servicios: { select: { id: true } } },
+      });
+      if (usuario && usuario.servicios.length > 0) {
+        const userServices = usuario.servicios.map(s => s.id);
+        if (validServices) {
+          // Intersección: servicios que están en la sala Y que el usuario puede atender
+          validServices = validServices.filter(id => userServices.includes(id));
+        } else {
+          validServices = userServices;
+        }
+      }
+    }
+
+    if (validServices !== null) {
+      if (validServices.length === 0) return []; // Intersección vacía
+      whereClause.servicioId = { in: validServices };
+    }
+
     const turnos = await this.prisma.turno.findMany({
-      where: { sedeId, status: 'waiting' },
+      where: whereClause,
       include: { servicio: true },
       orderBy: { createdAt: 'asc' },
     });
 
     const agrupado: Record<string, any> = {};
+
+    // Inicializar todos los servicios válidos (para que el frontend sepa cuáles son, aunque estén vacíos)
+    let fetchServices = validServices;
+    if (!fetchServices) {
+      const allSede = await this.prisma.servicio.findMany({ where: { sedeId }, select: { id: true } });
+      fetchServices = allSede.map(s => s.id);
+    }
+    const allServices = await this.prisma.servicio.findMany({ where: { id: { in: fetchServices } } });
+    for (const s of allServices) {
+      agrupado[s.nombre] = {
+        servicio: { id: s.id, nombre: s.nombre, prefijo: s.prefijo },
+        turnos: [],
+      };
+    }
+
     for (const t of turnos) {
       const key = t.servicio.nombre;
-      if (!agrupado[key]) {
-        agrupado[key] = {
-          servicio: { id: t.servicio.id, nombre: t.servicio.nombre, prefijo: t.servicio.prefijo },
-          turnos: [],
-        };
+      if (agrupado[key]) {
+        agrupado[key].turnos.push({
+          id: t.id,
+          codigo: t.codigo,
+          cedula: t.cedula,
+          nombre: t.nombre,
+          status: t.status,
+          createdAt: t.createdAt,
+        });
       }
-      agrupado[key].turnos.push({
-        id: t.id,
-        codigo: t.codigo,
-        cedula: t.cedula,
-        nombre: t.nombre,
-        status: t.status,
-        createdAt: t.createdAt,
-      });
     }
 
     return Object.values(agrupado);

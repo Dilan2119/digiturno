@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsOptional, IsInt, IsEnum } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsInt, IsEnum, IsArray } from 'class-validator';
 
 export class CreateUsuarioDto {
   @IsOptional()
@@ -16,4 +16,9 @@ export class CreateUsuarioDto {
 
   @IsEnum(['admin_central', 'profesional', 'dispensador'])
   rol: 'admin_central' | 'profesional' | 'dispensador';
+
+  @IsArray()
+  @IsInt({ each: true })
+  @IsOptional()
+  serviciosIds?: number[];
 }

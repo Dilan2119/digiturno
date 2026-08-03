@@ -8,23 +8,46 @@ export class SalasService {
   constructor(private prisma: PrismaService) {}
 
   create(dto: CreateSalaDto) {
-    return this.prisma.sala.create({ data: dto });
+    const { serviciosIds, ...data } = dto;
+    return this.prisma.sala.create({
+      data: {
+        ...data,
+        servicios: serviciosIds ? { connect: serviciosIds.map(id => ({ id })) } : undefined,
+      },
+      include: { servicios: true }
+    });
   }
 
   findAll(sedeId?: number) {
     const where = sedeId ? { sedeId } : {};
-    return this.prisma.sala.findMany({ where, orderBy: { nombre: 'asc' } });
+    return this.prisma.sala.findMany({ 
+      where, 
+      orderBy: { nombre: 'asc' },
+      include: { servicios: true }
+    });
   }
 
   async findOne(id: number) {
-    const sala = await this.prisma.sala.findUnique({ where: { id } });
+    const sala = await this.prisma.sala.findUnique({ 
+      where: { id },
+      include: { servicios: true }
+    });
     if (!sala) throw new NotFoundException('Sala no encontrada');
     return sala;
   }
 
   async update(id: number, dto: UpdateSalaDto) {
     await this.findOne(id);
-    return this.prisma.sala.update({ where: { id }, data: dto });
+    const { serviciosIds, ...data } = dto;
+    
+    return this.prisma.sala.update({ 
+      where: { id }, 
+      data: {
+        ...data,
+        servicios: serviciosIds ? { set: serviciosIds.map(id => ({ id })) } : undefined,
+      },
+      include: { servicios: true }
+    });
   }
 
   async remove(id: number) {

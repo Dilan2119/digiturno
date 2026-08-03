@@ -32,7 +32,9 @@ async function bootstrap() {
 
   app.enableCors();
 
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), { prefix: '/uploads' });
+  const uploadsPath = join(process.cwd(), 'uploads');
+  console.log(`Serving static files from: ${uploadsPath}`);
+  app.useStaticAssets(uploadsPath, { prefix: '/uploads' });
 
   await app.listen(process.env.PORT ?? 3000);
 }

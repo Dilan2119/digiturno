@@ -23,6 +23,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { if (state.token) { setToken(state.token); } }, [state.token]);
 
+  // Escuchar expiración de sesión desde cualquier llamada API
+  useEffect(() => {
+    const handler = () => {
+      setState({ token: null, user: null });
+    };
+    window.addEventListener('auth:expired', handler);
+    return () => window.removeEventListener('auth:expired', handler);
+  }, []);
+
   const login = async (email: string, password: string) => {
     const res = await apiLogin(email, password);
     setToken(res.accessToken);

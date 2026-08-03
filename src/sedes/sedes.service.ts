@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSedeDto } from './dto/create-sede.dto';
 import { UpdateSedeDto } from './dto/update-sede.dto';
@@ -7,8 +7,13 @@ import { UpdateSedeDto } from './dto/update-sede.dto';
 export class SedesService {
   constructor(private prisma: PrismaService) {}
 
-  create(dto: CreateSedeDto) {
-    return this.prisma.sede.create({ data: dto });
+  async create(dto: CreateSedeDto) {
+    try {
+      return await this.prisma.sede.create({ data: dto });
+    } catch (e: any) {
+      if (e.code === 'P2002') throw new ConflictException('Ya existe una sede con esos datos');
+      throw e;
+    }
   }
 
   findAll() {

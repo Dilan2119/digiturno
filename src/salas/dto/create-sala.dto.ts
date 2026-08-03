@@ -1,4 +1,4 @@
-import { IsString, IsInt } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsArray } from 'class-validator';
 
 export class CreateSalaDto {
   @IsInt()
@@ -6,4 +6,9 @@ export class CreateSalaDto {
 
   @IsString()
   nombre: string;
+
+  @IsArray()
+  @IsInt({ each: true })
+  @IsOptional()
+  serviciosIds?: number[];
 }

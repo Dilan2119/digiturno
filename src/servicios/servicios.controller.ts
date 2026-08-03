@@ -48,7 +48,7 @@ export class ServiciosController {
   @Delete('servicios/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin_central')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.servicios.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @Query('force') force?: string) {
+    return this.servicios.remove(id, force === 'true');
   }
 }

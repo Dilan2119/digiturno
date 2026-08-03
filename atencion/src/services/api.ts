@@ -22,6 +22,20 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export function getJwtPayload(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
+
 export interface LoginRes {
   accessToken: string;
   refreshToken: string;
@@ -53,8 +67,9 @@ export interface Sala {
   id: number; sedeId: number; nombre: string;
 }
 
-export function getColas(sedeId: number) {
-  return request<ColaGrupo[]>('/sedes/' + sedeId + '/colas');
+export function getColas(sedeId: number, salaId?: number | null) {
+  const url = salaId ? `/sedes/${sedeId}/colas?salaId=${salaId}` : `/sedes/${sedeId}/colas`;
+  return request<ColaGrupo[]>(url);
 }
 
 export function getSalas(sedeId: number) {

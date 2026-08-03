@@ -58,7 +58,14 @@ export class TurnosGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.data.salaId = salaId;
     client.data.sedeId = sala.sedeId;
 
-    await client.join(`sede:${sala.sedeId}:sala:${salaId}`);
+    if (client.data.user) {
+      // Es un profesional (Módulo de Atención)
+      await client.join(`atencion:sede:${sala.sedeId}`);
+      await client.join(`atencion:sala:${salaId}`);
+    } else {
+      // Es un Visor
+      await client.join(`visor:sala:${salaId}`);
+    }
 
     const visores = await this.prisma.visor.findMany({
       where: { salaId },
@@ -75,19 +82,19 @@ export class TurnosGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(room).emit(event, payload);
   }
 
-  async emitToSala(sedeId: number, salaId: number, event: string, payload: any) {
-    this.emitToRoom(`sede:${sedeId}:sala:${salaId}`, event, payload);
+  // Notifica a todos los profesionales (Atención) en la Sede y solo a los Visores de una Sala específica
+  async notifyCallAction(sedeId: number, salaId: number, event: string, payload: any) {
+    // Atención: necesitan saber de todos los llamados para actualizar sus colas de espera
+    this.server.to(`atencion:sede:${sedeId}`).emit(event, payload);
+    // Visores: solo muestran los llamados de la sala donde físicamente se ubican
+    this.server.to(`visor:sala:${salaId}`).emit(event, payload);
   }
 
+  // Notifica globalmente en la Sede (ej: para cuando se crea un turno nuevo en el dispensador)
   async emitToSede(sedeId: number, event: string, payload: any) {
-    const salas = await this.prisma.sala.findMany({
-      where: { sedeId },
-      select: { id: true },
-    });
-    for (const sala of salas) {
-      this.emitToRoom(`sede:${sedeId}:sala:${sala.id}`, event, payload);
-    }
+    this.server.to(`atencion:sede:${sedeId}`).emit(event, payload);
   }
+
 
   @SubscribeMessage('llamar-turno')
   async handleLlamarTurno(client: Socket, payload: { turnoId: number; moduloId: number }) {
@@ -96,7 +103,8 @@ export class TurnosGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const turno = await this.turnosService.llamarTurno(payload.turnoId, payload.moduloId, user.id);
       const sedeId = turno!.servicio?.sedeId ?? turno!.sedeId;
-      await this.emitToSede(sedeId, 'turno-llamado', turno);
+      const salaId = client.data.salaId;
+      await this.notifyCallAction(sedeId, salaId, 'turno-llamado', turno);
       return turno;
     } catch (e: any) {
       return { success: false, message: e.message };
@@ -110,7 +118,8 @@ export class TurnosGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const turno = await this.turnosService.reLlamarTurno(payload.turnoId, user.id);
       const sedeId = turno!.servicio?.sedeId ?? turno!.sedeId;
-      await this.emitToSede(sedeId, 'turno-re-llamado', turno);
+      const salaId = client.data.salaId;
+      await this.notifyCallAction(sedeId, salaId, 'turno-re-llamado', turno);
       return turno;
     } catch (e: any) {
       return { success: false, message: e.message };
@@ -124,7 +133,8 @@ export class TurnosGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const turno = await this.turnosService.marcarAusente(payload.turnoId, user.id);
       const sedeId = turno!.servicio?.sedeId ?? turno!.sedeId;
-      await this.emitToSede(sedeId, 'turno-ausente', turno);
+      const salaId = client.data.salaId;
+      await this.notifyCallAction(sedeId, salaId, 'turno-ausente', turno);
       return turno;
     } catch (e: any) {
       return { success: false, message: e.message };
@@ -138,7 +148,8 @@ export class TurnosGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const turno = await this.turnosService.finalizarAtencion(payload.turnoId, user.id);
       const sedeId = turno!.servicio?.sedeId ?? turno!.sedeId;
-      await this.emitToSede(sedeId, 'atencion-finalizada', turno);
+      const salaId = client.data.salaId;
+      await this.notifyCallAction(sedeId, salaId, 'atencion-finalizada', turno);
       return turno;
     } catch (e: any) {
       return { success: false, message: e.message };

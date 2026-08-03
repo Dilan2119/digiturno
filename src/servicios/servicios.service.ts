@@ -27,10 +27,28 @@ export class ServiciosService {
     return this.prisma.servicio.update({ where: { id }, data: dto });
   }
 
-  async remove(id: number) {
+  async remove(id: number, force: boolean = false) {
     await this.findOne(id);
     const turnos = await this.prisma.turno.count({ where: { servicioId: id } });
-    if (turnos > 0) throw new ConflictException('No se puede eliminar: tiene turnos asociados');
+    
+    if (turnos > 0) {
+      if (!force) {
+        throw new ConflictException('No se puede eliminar: tiene turnos asociados');
+      }
+      // Borrado en cascada con transacción
+      await this.prisma.$transaction(async (tx) => {
+        const turnosDelServicio = await tx.turno.findMany({ where: { servicioId: id }, select: { id: true } });
+        const tIds = turnosDelServicio.map(t => t.id);
+        if (tIds.length > 0) {
+          await tx.turnoEvento.deleteMany({ where: { turnoId: { in: tIds } } });
+        }
+        await tx.turno.deleteMany({ where: { servicioId: id } });
+        await tx.contadorTurno.deleteMany({ where: { servicioId: id } });
+        await tx.servicio.delete({ where: { id } });
+      });
+      return { success: true };
+    }
+    
     await this.prisma.contadorTurno.deleteMany({ where: { servicioId: id } });
     return this.prisma.servicio.delete({ where: { id } });
   }

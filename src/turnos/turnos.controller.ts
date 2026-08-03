@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, ParseIntPipe, UseGuards, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -23,8 +23,13 @@ export class TurnosController {
   }
 
   @Get('sedes/:sedeId/colas')
-  colas(@Param('sedeId', ParseIntPipe) sedeId: number) {
-    return this.turnos.colasPorSede(sedeId);
+  @UseGuards(AuthGuard('jwt'))
+  colas(
+    @Param('sedeId', ParseIntPipe) sedeId: number, 
+    @Query('salaId') salaId?: string,
+    @CurrentUser() user?: any
+  ) {
+    return this.turnos.colasPorSede(sedeId, salaId ? parseInt(salaId, 10) : undefined, user?.id);
   }
 
   @Get('visores/:visorId/estado-actual')
