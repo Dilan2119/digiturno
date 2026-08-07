@@ -56,7 +56,7 @@ export default function TurnBoard({ turnoActual, ultimosLlamados }: Props) {
             {turnoActual.modulo && (
               <div className="bg-amber-500/20 border border-amber-400 rounded-2xl px-8 py-3 text-amber-400 font-bold text-center mt-2 shadow-[0_0_15px_rgba(251,191,36,0.3)]"
                 style={{ fontSize: 'clamp(1.2rem, 3vw, 2rem)' }}>
-                Módulo {turnoActual.modulo.nombre}
+                {turnoActual.modulo.nombre}
               </div>
             )}
 
@@ -119,7 +119,7 @@ export default function TurnBoard({ turnoActual, ultimosLlamados }: Props) {
                 {t.modulo && (
                   <div className="shrink-0 text-amber-400 font-bold text-right"
                     style={{ fontSize: 'clamp(0.9rem, 1.8vw, 1.3rem)' }}>
-                    Módulo {t.modulo.nombre}
+                    {t.modulo.nombre}
                   </div>
                 )}
               </div>
