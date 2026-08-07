@@ -24,39 +24,41 @@ export default function Ticket({ turno, onReset }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-6 py-8 text-center">
-      <div className="animate-bounce-in">
-        <div className="text-5xl mb-4">🎉</div>
-        <h1 className="text-xl text-slate-300 mb-2">Su turno</h1>
-        <div className="bg-slate-800 border-2 border-blue-500 rounded-3xl px-8 py-6 mb-6 inline-block">
-          <span className="text-5xl font-bold tracking-widest text-blue-400 font-mono">
+    <div className="flex flex-col items-center justify-center min-h-screen px-6 py-8 text-center bg-white">
+      <div className="animate-bounce-in flex flex-col items-center">
+        <div className="mb-4">
+          <svg className="w-20 h-20 text-green-500 animate-[pulse_1s_ease-in-out_infinite]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <h1 className="text-3xl font-bold text-[#0D2E5A] mb-2">Turno Asignado</h1>
+        <div className="bg-white border-4 border-[#0D2E5A] rounded-3xl px-12 py-8 mb-6 inline-block shadow-lg">
+          <span className="text-6xl font-bold tracking-widest text-[#29ABE2] font-mono">
             {turno.codigo}
           </span>
         </div>
       </div>
 
-      <p className="text-slate-400 text-sm mb-8">
+      <p className="text-[#6B7A8D] text-lg font-medium mb-10">
         Espere a ser llamado. Por favor mantenga su turno visible.
       </p>
 
-      <div className="flex gap-4 mb-12">
+      <div className="flex flex-col gap-4 mb-12 w-full max-w-xs">
         <button
           onClick={handlePrint}
-          className="bg-slate-700 hover:bg-slate-600 active:bg-slate-500 rounded-2xl px-8 py-4 text-lg font-semibold active:scale-95 transition-transform"
+          className="bg-[#E8F6FD] text-[#1B5FAE] border border-[#1B5FAE] hover:bg-blue-50 active:bg-blue-100 rounded-2xl px-8 py-4 text-lg font-semibold active:scale-95 transition-transform w-full"
         >
           🖨️ Imprimir
         </button>
         <button
           onClick={onReset}
-          className="bg-blue-700 hover:bg-blue-600 rounded-2xl px-8 py-4 text-lg font-semibold active:scale-95 transition-transform"
+          className="bg-[#1B5FAE] text-white hover:bg-blue-700 rounded-2xl px-8 py-4 text-lg font-semibold active:scale-95 transition-transform w-full"
         >
           📟 Nuevo turno
         </button>
       </div>
 
-      <p className="text-slate-600 text-sm">
-        Volviendo al inicio en <span className="text-white font-mono">{countdown}</span>s
-      </p>
+      <div className="bg-[#E8F6FD] text-[#0D2E5A] rounded-full px-6 py-2 text-sm font-semibold shadow-sm">
+        Volviendo al inicio en <span className="font-mono text-[#1B5FAE] ml-1">{countdown}s</span>
+      </div>
     </div>
   )
 }

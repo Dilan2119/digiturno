@@ -139,137 +139,188 @@ export default function Dashboard({ socket, sedeId, salaId, onSalaChange, onLogo
   const totalWaiting = queue.reduce((s, g) => s + g.turnos.length, 0);
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-[#E8F6FD] font-sans">
       {/* Header */}
-      <header className="bg-slate-800 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-3">
-          <span className="text-blue-300 font-bold">Digiturno</span>
-          <select
-            value={salaId ?? ''}
-            onChange={(e) => {
-              const id = Number(e.target.value);
-              if (id) onSalaChange(id);
-            }}
-            className="bg-slate-700 rounded-lg px-3 py-1.5 text-sm text-white"
-          >
-            {salas.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-          </select>
-          <select
-            value={moduloId ?? ''}
-            onChange={(e) => {
-              const id = e.target.value ? Number(e.target.value) : null;
-              setModuloId(id);
-              if (id) localStorage.setItem('atencion_moduloId', id.toString());
-              else localStorage.removeItem('atencion_moduloId');
-            }}
-            className="bg-slate-700 rounded-lg px-3 py-1.5 text-sm text-white"
-          >
-
-            <option value="">Módulo</option>
-            {modulos.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-          </select>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-sm">
-            <span className={`w-2.5 h-2.5 rounded-full ${
-              wsStatus === 'connected' ? 'bg-green-400' : 'bg-red-400'
-            }`} />
-            <span className="text-slate-400">{wsStatus === 'connected' ? 'En vivo' : 'Desconectado'}</span>
+      <header className="bg-[#0D2E5A] px-6 py-4 flex items-center justify-between flex-wrap gap-4 shadow-md">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+            </svg>
+            <span className="text-white font-bold text-xl tracking-wide">IPS Clinical House</span>
           </div>
-          <button onClick={onLogout} className="text-sm text-slate-400 hover:text-white">Salir</button>
+          <div className="flex items-center gap-3">
+            <select
+              value={salaId ?? ''}
+              onChange={(e) => {
+                const id = Number(e.target.value);
+                if (id) onSalaChange(id);
+              }}
+              className="bg-white border-2 border-[#29ABE2] rounded-lg px-3 py-1.5 text-sm text-[#0D2E5A] font-medium focus:outline-none focus:ring-2 focus:ring-[#29ABE2]"
+            >
+              <option value="">Seleccione Sala</option>
+              {salas.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+            </select>
+            <select
+              value={moduloId ?? ''}
+              onChange={(e) => {
+                const id = e.target.value ? Number(e.target.value) : null;
+                setModuloId(id);
+                if (id) localStorage.setItem('atencion_moduloId', id.toString());
+                else localStorage.removeItem('atencion_moduloId');
+              }}
+              className="bg-white border-2 border-[#29ABE2] rounded-lg px-3 py-1.5 text-sm text-[#0D2E5A] font-medium focus:outline-none focus:ring-2 focus:ring-[#29ABE2]"
+            >
+              <option value="">Seleccione Módulo</option>
+              {modulos.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 text-sm bg-black/20 px-3 py-1.5 rounded-full">
+            <span className={`w-2.5 h-2.5 rounded-full ${
+              wsStatus === 'connected' ? 'bg-green-400' : 'bg-red-500'
+            }`} />
+            <span className="text-white/90 font-medium">{wsStatus === 'connected' ? 'En línea' : 'Desconectado'}</span>
+          </div>
+          <button onClick={onLogout} className="text-sm text-white/80 hover:text-white font-medium transition-colors">Cerrar Sesión</button>
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-auto">
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 p-6 overflow-auto">
         {/* Left: Queue */}
-        <div className="flex-1 bg-slate-800/50 rounded-2xl p-4 overflow-auto">
-          <h2 className="text-lg font-semibold text-slate-300 mb-3">
-            Cola de Espera <span className="text-sm text-slate-500">({totalWaiting})</span>
-          </h2>
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-auto">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+            <h2 className="text-xl font-bold text-[#0D2E5A]">
+              Pacientes en Espera <span className="text-sm font-medium text-[#6B7A8D] bg-gray-100 px-2 py-1 rounded-full ml-2">{totalWaiting}</span>
+            </h2>
+          </div>
           {queue.length === 0 ? (
-            <p className="text-slate-600 text-center py-8">Sin turnos en espera</p>
+            <div className="flex flex-col items-center justify-center h-48 text-[#6B7A8D]">
+              <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <p className="text-lg">No hay pacientes en espera</p>
+            </div>
           ) : (
-            queue.map((grupo) => (
-              <div key={grupo.servicio.id} className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-slate-400">{grupo.servicio.nombre}</h3>
-                  <button 
-                    onClick={() => llamarSiguiente(grupo.servicio.id)}
-                    disabled={grupo.turnos.length === 0 || !moduloId}
-                    className="text-xs bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 px-3 py-1 rounded-full font-medium transition-colors disabled:opacity-30"
-                  >
-                    Llamar Siguiente
-                  </button>
-                </div>
-                <div className="space-y-1">
-
-                  {grupo.turnos.map((t) => (
-                    <div
-                      key={t.id}
-                      className={`flex items-center justify-between bg-slate-800 rounded-xl px-4 py-2.5 text-sm ${
-                        currentTurn?.id === t.id ? 'ring-2 ring-blue-500' : ''
-                      }`}
+            <div className="space-y-6">
+              {queue.map((grupo) => (
+                <div key={grupo.servicio.id} className="bg-gray-50/50 rounded-xl p-4 border border-gray-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-md font-bold text-[#1B5FAE] flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-[#29ABE2]"></div>
+                      {grupo.servicio.nombre}
+                    </h3>
+                    <button 
+                      onClick={() => llamarSiguiente(grupo.servicio.id)}
+                      disabled={grupo.turnos.length === 0 || !moduloId}
+                      className="text-sm bg-[#E8F6FD] hover:bg-[#1B5FAE] text-[#1B5FAE] hover:text-white border border-[#1B5FAE]/20 px-4 py-1.5 rounded-lg font-semibold transition-all disabled:opacity-40 disabled:hover:bg-[#E8F6FD] disabled:hover:text-[#1B5FAE]"
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono font-bold text-blue-300">{t.codigo}</span>
-                        <span className="text-slate-400">{t.nombre || '---'}</span>
+                      Llamar Siguiente
+                    </button>
+                  </div>
+                  <div className="grid gap-2">
+                    {grupo.turnos.map((t) => (
+                      <div
+                        key={t.id}
+                        className={`flex items-center justify-between bg-white rounded-lg p-3 shadow-sm border-l-4 ${
+                          currentTurn?.id === t.id ? 'border-l-[#29ABE2] ring-1 ring-[#29ABE2]/30' : 'border-l-[#1B5FAE] border border-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="font-bold text-lg text-[#0D2E5A] w-16">{t.codigo}</span>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-gray-800">{t.nombre || 'Paciente'}</span>
+                            <span className="text-[#6B7A8D] text-xs">ID: {t.cedula.slice(0, -4).replace(/./g, '*') + t.cedula.slice(-4)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-slate-500 text-xs">{t.cedula.slice(0, -4).replace(/./g, '*') + t.cedula.slice(-4)}</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
 
         {/* Right: Current Turn + Actions */}
-        <div className="w-full lg:w-80 flex flex-col gap-4">
+        <div className="w-full lg:w-96 flex flex-col gap-6">
           {/* Current Turn */}
-          <div className="bg-slate-800 rounded-2xl p-6 text-center flex-1 flex flex-col items-center justify-center min-h-[200px]">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center flex-1 flex flex-col items-center justify-center min-h-[250px] relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#1B5FAE] to-[#29ABE2]"></div>
             {currentTurn ? (
-              <>
-                <p className="text-slate-400 text-sm mb-1">Atención Actual</p>
-                <p className="text-4xl font-bold font-mono text-blue-400 mb-1">{currentTurn.codigo}</p>
-                <p className="text-slate-300 text-lg">{currentTurn.cedula}</p>
-                {currentTurn.modulo && <p className="text-slate-500 text-sm mt-1">Módulo {currentTurn.modulo.nombre}</p>}
-                {currentTurn.servicio && <p className="text-slate-500 text-xs mt-1">{currentTurn.servicio.nombre}</p>}
-              </>
+              <div className="flex flex-col items-center w-full">
+                <span className="bg-[#E8F6FD] text-[#1B5FAE] text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">Atención Actual</span>
+                <p className="text-6xl font-black text-[#29ABE2] mb-2 tracking-tight">{currentTurn.codigo}</p>
+                <p className="text-[#0D2E5A] font-bold text-xl mb-4">{currentTurn.nombre || 'Paciente'}</p>
+                
+                <div className="w-full bg-gray-50 rounded-xl p-4 mt-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[#6B7A8D] text-sm font-medium">Documento</span>
+                    <span className="text-gray-800 font-semibold">{currentTurn.cedula}</span>
+                  </div>
+                  {currentTurn.modulo && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[#6B7A8D] text-sm font-medium">Módulo</span>
+                      <span className="text-gray-800 font-semibold">{currentTurn.modulo.nombre}</span>
+                    </div>
+                  )}
+                  {currentTurn.servicio && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#6B7A8D] text-sm font-medium">Servicio</span>
+                      <span className="text-[#1B5FAE] font-semibold text-right max-w-[60%] truncate" title={currentTurn.servicio.nombre}>
+                        {currentTurn.servicio.nombre}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
-              <p className="text-slate-600">Sin atención activa</p>
+              <div className="flex flex-col items-center text-[#6B7A8D]">
+                <svg className="w-16 h-16 text-gray-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                <p className="text-lg font-medium">Módulo Disponible</p>
+                <p className="text-sm mt-1">Llame al siguiente paciente para comenzar</p>
+              </div>
             )}
           </div>
 
           {/* Acciones */}
-          <div className="space-y-2">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-[#0D2E5A] mb-1 uppercase tracking-wider">Acciones</h3>
             <button
               onClick={() => llamarSiguiente()}
               disabled={totalWaiting === 0 || !moduloId}
-              className="w-full bg-blue-700 hover:bg-blue-600 disabled:opacity-40 rounded-xl py-4 text-lg font-bold transition-colors"
+              className="w-full bg-[#1B5FAE] hover:bg-[#0D2E5A] text-white disabled:opacity-40 rounded-xl py-4 text-lg font-bold transition-all shadow-md flex items-center justify-center gap-2"
             >
-              📞 Llamar Cualquiera
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+              Llamar Siguiente
             </button>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-3 mt-1">
               <button
                 onClick={reLlamar}
                 disabled={!currentTurn}
-                className="bg-amber-700 hover:bg-amber-600 disabled:opacity-40 rounded-xl py-3 font-semibold text-sm transition-colors"
+                className="bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-40 rounded-xl py-3 font-semibold text-sm transition-all shadow-sm flex flex-col items-center justify-center gap-1"
               >
-                🔄 Re-llamar
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Re-llamar
               </button>
               <button
                 onClick={marcarAusente}
                 disabled={!currentTurn}
-                className="bg-red-800 hover:bg-red-700 disabled:opacity-40 rounded-xl py-3 font-semibold text-sm transition-colors"
+                className="bg-red-500 hover:bg-red-600 text-white disabled:opacity-40 rounded-xl py-3 font-semibold text-sm transition-all shadow-sm flex flex-col items-center justify-center gap-1"
               >
-                ❌ Ausente
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Ausente
               </button>
               <button
                 onClick={finalizar}
                 disabled={!currentTurn}
-                className="bg-green-800 hover:bg-green-700 disabled:opacity-40 rounded-xl py-3 font-semibold text-sm transition-colors"
+                className="bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-40 rounded-xl py-3 font-semibold text-sm transition-all shadow-sm flex flex-col items-center justify-center gap-1"
               >
-                ✅ Finalizar
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Finalizar
               </button>
             </div>
           </div>

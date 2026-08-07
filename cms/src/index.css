@@ -1,1 +1,22 @@
-@tailwind base; @tailwind components; @tailwind utilities;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  * { -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f0f4f8;
+  }
+}
+
+/* Clinical House Brand Colors */
+:root {
+  --ch-blue: #1B5FAE;
+  --ch-blue-dark: #0D2E5A;
+  --ch-cyan: #29ABE2;
+  --ch-cyan-light: #E8F6FD;
+  --ch-gray: #6B7A8D;
+}
