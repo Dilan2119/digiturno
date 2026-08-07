@@ -10,6 +10,11 @@ export class PublicController {
     return this.prisma.sede.findMany({ select: { id: true, nombre: true } });
   }
 
+  @Get('sedes/:id')
+  async getSede(@Param('id', ParseIntPipe) id: number) {
+    return this.prisma.sede.findUnique({ where: { id }, select: { id: true, nombre: true } });
+  }
+
   @Get('salas')
   async listSalas(@Query('sedeId') sedeId?: string) {
     const where = sedeId ? { sedeId: parseInt(sedeId, 10) } : {};

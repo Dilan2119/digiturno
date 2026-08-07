@@ -1,23 +1,57 @@
-import { useState } from 'react'
-import { Sede, Servicio, Turno, crearTurno } from './services/api'
-import SelectSede from './pages/SelectSede'
+import { useState, useEffect } from 'react'
+import { setToken, getToken, login as apiLogin, getJwtPayload, getSede, Sede, Servicio, Turno, crearTurno } from './services/api'
+import Login from './pages/Login'
 import SelectService from './pages/SelectService'
 import EnterName from './pages/EnterName'
 import EnterCedula from './pages/EnterCedula'
 import Ticket from './pages/Ticket'
 
-type Step = 'select-sede' | 'select-service' | 'enter-name' | 'enter-cedula' | 'ticket'
+type Step = 'login' | 'select-service' | 'enter-name' | 'enter-cedula' | 'ticket'
 
 export default function App() {
-  const [step, setStep] = useState<Step>('select-sede')
+  const [step, setStep] = useState<Step>('login')
   const [sede, setSede] = useState<Sede | null>(null)
   const [servicio, setServicio] = useState<Servicio | null>(null)
   const [nombre, setNombre] = useState('')
   const [turno, setTurno] = useState<Turno | null>(null)
 
-  const handleSedeSelected = (s: Sede) => {
+  // Restaurar sesión guardada
+  useEffect(() => {
+    const stored = localStorage.getItem('dispensador_token')
+    if (stored) {
+      setToken(stored)
+      const payload = getJwtPayload(stored)
+      if (payload?.sedeId) {
+        getSede(payload.sedeId)
+          .then(s => { setSede(s); setStep('select-service') })
+          .catch(() => { localStorage.removeItem('dispensador_token') })
+      }
+    }
+  }, [])
+
+  const handleLogin = async (accessToken: string) => {
+    setToken(accessToken)
+    localStorage.setItem('dispensador_token', accessToken)
+    const payload = getJwtPayload(accessToken)
+    if (!payload?.sedeId) {
+      alert('Este usuario no tiene sede asignada. Contacta al administrador.')
+      setToken(null)
+      localStorage.removeItem('dispensador_token')
+      return
+    }
+    const s = await getSede(payload.sedeId)
     setSede(s)
     setStep('select-service')
+  }
+
+  const handleLogout = () => {
+    setToken(null)
+    localStorage.removeItem('dispensador_token')
+    setSede(null)
+    setServicio(null)
+    setNombre('')
+    setTurno(null)
+    setStep('login')
   }
 
   const handleServiceSelected = (s: Servicio) => {
@@ -45,10 +79,17 @@ export default function App() {
   }
 
   switch (step) {
-    case 'select-sede':
-      return <SelectSede onSelect={handleSedeSelected} />
+    case 'login':
+      return <Login onLogin={handleLogin} />
     case 'select-service':
-      return <SelectService sedeId={sede!.id} onSelect={handleServiceSelected} onBack={() => setStep('select-sede')} />
+      return (
+        <SelectService
+          sedeId={sede!.id}
+          sedeName={sede!.nombre}
+          onSelect={handleServiceSelected}
+          onLogout={handleLogout}
+        />
+      )
     case 'enter-name':
       return (
         <EnterName
