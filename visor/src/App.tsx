@@ -78,17 +78,24 @@ export default function App() {
   }, [visorId, fetchVisor])
 
   const handleTurnoLlamado = useCallback((turno: Turno) => {
+    // Filtrar si el Visor tiene servicios asignados
+    if (visorInfo?.sala?.servicios && visorInfo.sala.servicios.length > 0) {
+      if (!visorInfo.sala.servicios.find(s => s.id === turno.servicioId)) return;
+    }
     setTurnoActual(turno)
     setUltimosLlamados((prev) => [turno, ...prev].slice(0, 10))
     const mod = turno.modulo?.nombre ?? ''
     audioService.playTurnoLlamado(turno.codigo, mod, turno.nombre)
-  }, [])
+  }, [visorInfo])
 
   const handleTurnoReLlamado = useCallback((turno: Turno) => {
+    if (visorInfo?.sala?.servicios && visorInfo.sala.servicios.length > 0) {
+      if (!visorInfo.sala.servicios.find(s => s.id === turno.servicioId)) return;
+    }
     setTurnoActual(turno)
     const mod = turno.modulo?.nombre ?? ''
     audioService.playTurnoReLlamado(turno.codigo, mod, turno.nombre)
-  }, [])
+  }, [visorInfo])
 
   const handleTurnoAusente = useCallback(() => {
     if (visorId) reconciliar(visorId)

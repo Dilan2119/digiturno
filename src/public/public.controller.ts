@@ -46,7 +46,7 @@ export class PublicController {
     return this.prisma.visor.findUnique({
       where: { id },
       include: {
-        sala: { select: { id: true, nombre: true, sedeId: true } },
+        sala: { include: { servicios: { select: { id: true } } } },
         playlists: { where: { activo: true }, orderBy: { orden: 'asc' } },
       },
     });
@@ -56,15 +56,21 @@ export class PublicController {
   async getEstadoActual(@Param('id', ParseIntPipe) id: number) {
     const visor = await this.prisma.visor.findUnique({
       where: { id },
-      include: { sala: true },
+      include: { sala: { include: { servicios: { select: { id: true } } } } },
     });
     if (!visor) throw new Error('Visor no encontrado');
 
+    const validServices = visor.sala.servicios.length > 0 ? visor.sala.servicios.map(s => s.id) : null;
+    const whereClause: any = {
+      sedeId: visor.sala.sedeId,
+      status: { in: ['called', 'attending'] },
+    };
+    if (validServices) {
+      whereClause.servicioId = { in: validServices };
+    }
+
     const ultimosLlamados = await this.prisma.turno.findMany({
-      where: {
-        sedeId: visor.sala.sedeId,
-        status: { in: ['called', 'attending'] },
-      },
+      where: whereClause,
       include: { servicio: true, modulo: true },
       orderBy: { createdAt: 'desc' },
       take: 5,

@@ -86,6 +86,7 @@ export class TurnosService {
     
     let validServices: number[] | null = null;
 
+    // Filtro por Sala: solo aplica restricción si la sala TIENE servicios asignados
     if (salaId) {
       const sala = await this.prisma.sala.findUnique({
         where: { id: salaId },
@@ -93,11 +94,11 @@ export class TurnosService {
       });
       if (sala && sala.servicios.length > 0) {
         validServices = sala.servicios.map(s => s.id);
-      } else if (sala && sala.servicios.length === 0) {
-        return []; // La sala no tiene servicios asignados
       }
+      // Si la sala no tiene servicios configurados → sin restricción (muestra todos)
     }
 
+    // Filtro por Usuario: solo aplica restricción si el usuario TIENE servicios asignados
     if (usuarioId) {
       const usuario = await this.prisma.usuario.findUnique({
         where: { id: usuarioId },
@@ -105,13 +106,14 @@ export class TurnosService {
       });
       if (usuario && usuario.servicios.length > 0) {
         const userServices = usuario.servicios.map(s => s.id);
-        if (validServices) {
-          // Intersección: servicios que están en la sala Y que el usuario puede atender
+        if (validServices !== null) {
+          // Intersección: servicios en la sala Y que el usuario puede atender
           validServices = validServices.filter(id => userServices.includes(id));
         } else {
           validServices = userServices;
         }
       }
+      // Si el usuario no tiene servicios configurados → sin restricción adicional
     }
 
     if (validServices !== null) {

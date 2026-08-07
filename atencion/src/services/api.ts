@@ -67,9 +67,8 @@ export interface Sala {
   id: number; sedeId: number; nombre: string;
 }
 
-export function getColas(sedeId: number, salaId?: number | null) {
-  const url = salaId ? `/sedes/${sedeId}/colas?salaId=${salaId}` : `/sedes/${sedeId}/colas`;
-  return request<ColaGrupo[]>(url);
+export function getColas(sedeId: number) {
+  return request<ColaGrupo[]>(`/sedes/${sedeId}/colas`);
 }
 
 export function getSalas(sedeId: number) {

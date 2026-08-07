@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { setToken, getToken, login as apiLogin, getSalas, getJwtPayload } from './services/api';
+import { setToken, getToken, login as apiLogin, getJwtPayload } from './services/api';
 import { connectSocket, disconnectSocket } from './services/socket';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -9,10 +9,6 @@ type Step = 'login' | 'dashboard';
 export default function App() {
   const [step, setStep] = useState<Step>('login');
   const [sedeId, setSedeId] = useState<number | null>(null);
-  const [salaId, setSalaId] = useState<number | null>(() => {
-    const s = localStorage.getItem('atencion_salaId');
-    return s ? parseInt(s, 10) : null;
-  });
   const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null);
 
   // Recuperar sesión guardada
@@ -26,37 +22,15 @@ export default function App() {
     }
   }, []);
 
-  // Cargar primera sala disponible si no hay una seleccionada
+  // Conectar socket cuando estemos en el dashboard
   useEffect(() => {
     if (step !== 'dashboard' || !sedeId) return;
     const token = getToken();
     if (!token) return;
 
-    getSalas(sedeId).then((salas) => {
-      if (!salas.length) return;
-      
-      let targetSalaId = salaId;
-      // Si la sala guardada no existe en esta sede, tomamos la primera
-      if (!targetSalaId || !salas.find(s => s.id === targetSalaId)) {
-        targetSalaId = salas[0].id;
-        setSalaId(targetSalaId);
-        localStorage.setItem('atencion_salaId', targetSalaId.toString());
-      }
-      
-      if (socketRef.current) disconnectSocket();
-      socketRef.current = connectSocket(token, targetSalaId);
-    }).catch(() => {});
-  }, [step, sedeId]); // Depende de sedeId, no corremos esto al cambiar salaId manualmente aquí
-
-  // Reconectar socket cuando el usuario cambia la sala manualmente
-  const handleSalaChange = (newSalaId: number) => {
-    setSalaId(newSalaId);
-    localStorage.setItem('atencion_salaId', newSalaId.toString());
-    const token = getToken();
-    if (!token) return;
-    disconnectSocket();
-    socketRef.current = connectSocket(token, newSalaId);
-  };
+    if (socketRef.current) disconnectSocket();
+    socketRef.current = connectSocket(token);
+  }, [step, sedeId]);
 
   const handleLogin = async (accessToken: string) => {
     setToken(accessToken);
@@ -70,10 +44,8 @@ export default function App() {
     disconnectSocket();
     socketRef.current = null;
     setToken(null);
-    setSalaId(null);
     setSedeId(null);
     localStorage.removeItem('atencion_token');
-    localStorage.removeItem('atencion_salaId');
     localStorage.removeItem('atencion_moduloId'); // Limpiar caché de módulo
     setStep('login');
   };
@@ -95,8 +67,6 @@ export default function App() {
     <Dashboard
       socket={socketRef.current}
       sedeId={sedeId}
-      salaId={salaId}
-      onSalaChange={handleSalaChange}
       onLogout={handleLogout}
     />
   );

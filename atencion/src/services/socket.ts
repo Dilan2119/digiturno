@@ -4,12 +4,11 @@ const WS_BASE = (import.meta.env.VITE_WS_URL as string) || '';
 
 let socket: Socket | null = null;
 
-export function connectSocket(token: string, salaId: number) {
+export function connectSocket(token: string) {
   if (socket?.connected) socket.disconnect();
 
   socket = io(WS_BASE + '/visor', {
     auth: { token },
-    query: { salaId: String(salaId) },
     transports: ['websocket', 'polling'],
   });
 

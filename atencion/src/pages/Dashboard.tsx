@@ -1,17 +1,14 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Socket } from 'socket.io-client';
-import { ColaGrupo, Turno, Sala, Modulo, getColas, getSalas, getModulos, Servicio } from '../services/api';
+import { ColaGrupo, Turno, Modulo, getColas, getModulos, Servicio } from '../services/api';
 
 interface Props {
   socket: Socket | null;
   sedeId: number;
-  salaId: number | null;
-  onSalaChange: (salaId: number) => void;
   onLogout: () => void;
 }
 
-export default function Dashboard({ socket, sedeId, salaId, onSalaChange, onLogout }: Props) {
-  const [salas, setSalas] = useState<Sala[]>([]);
+export default function Dashboard({ socket, sedeId, onLogout }: Props) {
   const [queue, setQueue] = useState<ColaGrupo[]>([]);
   const [currentTurn, setCurrentTurn] = useState<Turno | null>(null);
   const [modulos, setModulos] = useState<Modulo[]>([]);
@@ -20,17 +17,11 @@ export default function Dashboard({ socket, sedeId, salaId, onSalaChange, onLogo
     return m ? parseInt(m, 10) : null;
   });
   const [wsStatus, setWsStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
-  const llamandoRef = useRef(false);
 
   useEffect(() => {
-    getSalas(sedeId).then(setSalas);
     getModulos(sedeId).then(setModulos);
-    if (salaId) {
-      getColas(sedeId, salaId).then(setQueue);
-    } else {
-      getColas(sedeId).then(setQueue);
-    }
-  }, [sedeId, salaId]);
+    getColas(sedeId).then(setQueue);
+  }, [sedeId]);
 
   useEffect(() => {
     if (!socket) { setWsStatus('disconnected'); return; }
@@ -150,17 +141,6 @@ export default function Dashboard({ socket, sedeId, salaId, onSalaChange, onLogo
             <span className="text-white font-bold text-xl tracking-wide">IPS Clinical House</span>
           </div>
           <div className="flex items-center gap-3">
-            <select
-              value={salaId ?? ''}
-              onChange={(e) => {
-                const id = Number(e.target.value);
-                if (id) onSalaChange(id);
-              }}
-              className="bg-white border-2 border-[#29ABE2] rounded-lg px-3 py-1.5 text-sm text-[#0D2E5A] font-medium focus:outline-none focus:ring-2 focus:ring-[#29ABE2]"
-            >
-              <option value="">Seleccione Sala</option>
-              {salas.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-            </select>
             <select
               value={moduloId ?? ''}
               onChange={(e) => {
