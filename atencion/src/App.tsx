@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { setToken, getToken, login as apiLogin, getJwtPayload } from './services/api';
-import { connectSocket, disconnectSocket } from './services/socket';
+import { connectSocket, disconnectSocket, getSocket } from './services/socket';
+import { Socket } from 'socket.io-client';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 
@@ -9,7 +10,7 @@ type Step = 'login' | 'dashboard';
 export default function App() {
   const [step, setStep] = useState<Step>('login');
   const [sedeId, setSedeId] = useState<number | null>(null);
-  const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   // Recuperar sesión guardada
   useEffect(() => {
@@ -28,8 +29,14 @@ export default function App() {
     const token = getToken();
     if (!token) return;
 
-    if (socketRef.current) disconnectSocket();
-    socketRef.current = connectSocket(token);
+    disconnectSocket();
+    const newSocket = connectSocket(token);
+    setSocket(newSocket);
+    
+    return () => {
+      disconnectSocket();
+      setSocket(null);
+    };
   }, [step, sedeId]);
 
   const handleLogin = async (accessToken: string) => {
@@ -42,7 +49,7 @@ export default function App() {
 
   const handleLogout = () => {
     disconnectSocket();
-    socketRef.current = null;
+    setSocket(null);
     setToken(null);
     setSedeId(null);
     localStorage.removeItem('atencion_token');
@@ -65,7 +72,7 @@ export default function App() {
 
   return (
     <Dashboard
-      socket={socketRef.current}
+      socket={socket}
       sedeId={sedeId}
       onLogout={handleLogout}
     />

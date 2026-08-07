@@ -25,6 +25,10 @@ export class TurnosGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   async handleConnection(client: Socket) {
+    console.log('--- Nueva conexion socket ---');
+    console.log('Auth token:', client.handshake.auth?.token ? 'Presente' : 'Ausente');
+    console.log('Query token:', client.handshake.query?.token ? 'Presente' : 'Ausente');
+    
     const token = client.handshake.auth?.token || (client.handshake.query?.token as string);
     if (token) {
       try {
@@ -33,22 +37,34 @@ export class TurnosGateway implements OnGatewayConnection, OnGatewayDisconnect {
           where: { id: payload.sub },
           select: { id: true, email: true, rol: true, sedeId: true },
         });
-        if (user) client.data.user = user;
-      } catch {}
+        if (user) {
+          client.data.user = user;
+          console.log('Usuario autenticado:', user.email, 'Sede:', user.sedeId);
+        } else {
+          console.log('Usuario no encontrado en BD para payload.sub:', payload.sub);
+        }
+      } catch (err: any) {
+        console.log('Error verificando token JWT:', err.message);
+      }
+    } else {
+      console.log('No se envio token JWT');
     }
 
     if (client.data.user) {
       // Es un profesional (Módulo de Atención)
       const sedeId = client.data.user.sedeId;
       if (!sedeId) {
+        console.log('Usuario sin sede asignada. Desconectando.');
         client.disconnect();
         return;
       }
       await client.join(`atencion:sede:${sedeId}`);
+      console.log('Profesional unido a atencion:sede:', sedeId);
       // Ya no necesitamos salaId para los profesionales
     } else {
       // Es un Visor (requiere salaId)
       const salaId = parseInt(client.handshake.query.salaId as string, 10);
+      console.log('Conexion sin usuario, asumiendo Visor. salaId:', salaId);
       if (!salaId || isNaN(salaId)) {
         client.emit('error', { message: 'salaId es requerido para el visor' });
         client.disconnect();
