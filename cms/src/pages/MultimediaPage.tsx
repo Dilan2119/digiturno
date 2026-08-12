@@ -3,6 +3,8 @@ import { getList, getOne, create, update, remove, Visor, PlaylistItem } from '..
 
 const BASE = '/api';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.clinicalhouse.co';
+
 export default function MultimediaPage() {
   const [visores, setVisores] = useState<Visor[]>([]);
   const [visorId, setVisorId] = useState<number>(0);
@@ -86,7 +88,7 @@ export default function MultimediaPage() {
         <div className="mt-3 flex gap-2 flex-wrap">
           {items.map(item => (
             <div key={item.id} className="relative group">
-              <img src={item.url} alt="" className="w-16 h-16 rounded-lg object-cover border" />
+              <img src={item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`} alt="" className="w-16 h-16 rounded-lg object-cover border" />
               <span className="absolute -top-1 -right-1 bg-slate-800 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{item.orden}</span>
             </div>
           ))}
@@ -113,9 +115,9 @@ export default function MultimediaPage() {
                   <td className="px-4 py-3 text-slate-400 cursor-grab active:cursor-grabbing">{item.orden}</td>
                   <td className="px-4 py-3">
                     {item.tipo === 'imagen' ? (
-                      <img src={item.url} alt="" className="w-12 h-12 rounded-lg object-cover border" />
+                      <img src={item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`} alt="" className="w-12 h-12 rounded-lg object-cover border" />
                     ) : (
-                      <video src={item.url} className="w-12 h-12 rounded-lg object-cover border" />
+                      <video src={item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`} className="w-12 h-12 rounded-lg object-cover border" />
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs capitalize">{item.tipo}</td>

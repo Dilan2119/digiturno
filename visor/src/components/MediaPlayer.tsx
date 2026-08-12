@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { PlaylistItem } from '../services/api'
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.clinicalhouse.co';
+
 interface Props {
   items: PlaylistItem[]
 }
@@ -52,7 +54,7 @@ export default function MediaPlayer({ items }: Props) {
       <div className="h-full flex items-center justify-center bg-black">
         <img
           key={item.id}
-          src={item.url}
+          src={item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`}
           alt=""
           className="max-h-full max-w-full object-contain"
           draggable={false}
@@ -65,7 +67,7 @@ export default function MediaPlayer({ items }: Props) {
     <div className="h-full flex items-center justify-center bg-black">
       <video
         key={item.id}
-        src={item.url}
+        src={item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`}
         className="max-h-full max-w-full"
         autoPlay
         muted
