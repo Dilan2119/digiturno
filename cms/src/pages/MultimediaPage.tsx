@@ -3,7 +3,12 @@ import { getList, getOne, create, update, remove, Visor, PlaylistItem } from '..
 
 const BASE = '/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.clinicalhouse.co';
+const baseUrl = (import.meta.env.VITE_API_URL || 'https://api.clinicalhouse.co').replace(/\/api$/, '');
+const getFinalUrl = (url: string) => {
+  if (url.startsWith('http')) return url;
+  const cleanItemUrl = url.replace(/^\/api/, '');
+  return `${baseUrl}${cleanItemUrl}`;
+};
 
 export default function MultimediaPage() {
   const [visores, setVisores] = useState<Visor[]>([]);
@@ -88,7 +93,7 @@ export default function MultimediaPage() {
         <div className="mt-3 flex gap-2 flex-wrap">
           {items.map(item => (
             <div key={item.id} className="relative group">
-              <img src={item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`} alt="" className="w-16 h-16 rounded-lg object-cover border" />
+              <img src={getFinalUrl(item.url)} alt="" className="w-16 h-16 rounded-lg object-cover border" />
               <span className="absolute -top-1 -right-1 bg-slate-800 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{item.orden}</span>
             </div>
           ))}
@@ -115,13 +120,13 @@ export default function MultimediaPage() {
                   <td className="px-4 py-3 text-slate-400 cursor-grab active:cursor-grabbing">{item.orden}</td>
                   <td className="px-4 py-3">
                     {item.tipo === 'imagen' ? (
-                      <img src={item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`} alt="" className="w-12 h-12 rounded-lg object-cover border" />
+                      <img src={getFinalUrl(item.url)} alt="" className="w-12 h-12 rounded-lg object-cover border" />
                     ) : (
-                      <video src={item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`} className="w-12 h-12 rounded-lg object-cover border" />
+                      <video src={getFinalUrl(item.url)} className="w-12 h-12 rounded-lg object-cover border" />
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs capitalize">{item.tipo}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500 max-w-[200px] truncate">{item.url}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 max-w-[200px] truncate">{getFinalUrl(item.url)}</td>
                   <td className="px-4 py-3">
                     <button onClick={() => toggleActivo(item)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${item.activo ? 'bg-blue-700' : 'bg-slate-300'}`}>
                       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${item.activo ? 'translate-x-4.5' : 'translate-x-1'}`} />

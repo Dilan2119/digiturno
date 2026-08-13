@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { PlaylistItem } from '../services/api'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.clinicalhouse.co';
+const baseUrl = (import.meta.env.VITE_API_URL || 'https://api.clinicalhouse.co').replace(/\/api$/, '');
+const getFinalUrl = (url: string) => {
+  if (url.startsWith('http')) return url;
+  const cleanItemUrl = url.replace(/^\/api/, '');
+  return `${baseUrl}${cleanItemUrl}`;
+};
 
 interface Props {
   items: PlaylistItem[]
@@ -54,7 +59,7 @@ export default function MediaPlayer({ items }: Props) {
       <div className="h-full flex items-center justify-center bg-black">
         <img
           key={item.id}
-          src={item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`}
+          src={getFinalUrl(item.url)}
           alt=""
           className="max-h-full max-w-full object-contain"
           draggable={false}
@@ -67,7 +72,7 @@ export default function MediaPlayer({ items }: Props) {
     <div className="h-full flex items-center justify-center bg-black">
       <video
         key={item.id}
-        src={item.url.startsWith('http') ? item.url : `${API_URL}${item.url}`}
+        src={getFinalUrl(item.url)}
         className="max-h-full max-w-full"
         autoPlay
         muted
