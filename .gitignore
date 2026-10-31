@@ -8,3 +8,7 @@ tests/.env.test
 .DS_Store
 Thumbs.db
 *.tsbuildinfo
+token.txt
+curl_*.txt
+curl_*.json
+hce-obesidad/
